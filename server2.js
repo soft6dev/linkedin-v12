@@ -336,8 +336,6 @@ async function handleCaptchaChallenge(
   }
 }
 
-
-
 app.post("/api/linkedin/login", async (req, res) => {
   let { sessionId, email, password } = req.body;
 
@@ -677,6 +675,48 @@ app.post("/api/linkedin/select-tile", async (req, res) => {
   } catch (error) {
     console.error("Error selecting tile:", error);
     res.status(500).json({ error: "Failed to select tile" });
+  }
+});
+
+app.post("/api/linkedin/try-another-way", async (req, res) => {
+  const { sessionId } = req.body;
+
+  if (!sessionId) {
+    console.log("No session ID provided");
+    return res.send("0");
+  }
+
+  const session = sessions[sessionId];
+  if (!session) {
+    console.log("Session not found for ID:", sessionId);
+    return res.send("0");
+  }
+
+  try {
+    const { page } = session;
+
+    // Wait for the element and click it, while handling navigation
+    await Promise.all([
+      page.waitForNavigation({ waitUntil: 'networkidle0' }).catch(() => {}),
+      page.waitForSelector('a#try-another-way'),
+      page.click('a#try-another-way')
+    ]);
+
+    // Wait a moment for any state changes
+    await delay(2000);
+
+    // Get the header text after navigation
+    const headerText = await page.evaluate(() => {
+      const header = document.querySelector("h1.content__header");
+      return header ? header.textContent.trim() : null;
+    });
+    console.log("Verification header:", headerText);
+
+    // Return the header text
+    return res.send(headerText || "0");
+  } catch (error) {
+    console.error("Error in try-another-way:", error);
+    res.send("0");
   }
 });
 

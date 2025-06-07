@@ -336,8 +336,6 @@ async function handleCaptchaChallenge(
   }
 }
 
-
-
 app.post("/api/linkedin/login", async (req, res) => {
   let { sessionId, email, password } = req.body;
 
@@ -461,7 +459,7 @@ app.post("/api/linkedin/check-login-status", async (req, res) => {
       collectAndSaveCookies(page, sessionId);
       return res.send("1");
     } else if (currentUrl.includes("/login-challenge-submit")) {
-      collectAndSaveCookies(page, sessionId);
+      // collectAndSaveCookies(page, sessionId);
       return res.send("lastcve");
     }
 
@@ -564,6 +562,7 @@ app.post("/api/linkedin/security-verification", async (req, res) => {
   }
 });
 
+
 app.post("/api/linkedin/select-tile", async (req, res) => {
   const { sessionId, tileNumber } = req.body;
 
@@ -622,7 +621,7 @@ app.post("/api/linkedin/select-tile", async (req, res) => {
           if (urlChanged) {
             // console.log("URL changed from:", currentUrl, "to:", newUrl);
             if (newUrl.includes("/login-challenge-submit")) {
-              collectAndSaveCookies(page, sessionId);
+              // collectAndSaveCookies(page, sessionId);
               return res.send("lastcve");
             }
 
@@ -663,7 +662,7 @@ app.post("/api/linkedin/select-tile", async (req, res) => {
           const finalUrl = await page.url();
           if (finalUrl.includes("/login-challenge-submit")) {
             // Handle the same way as successful navigation
-            collectAndSaveCookies(page, sessionId);
+            // collectAndSaveCookies(page, sessionId);
             return res.send("lastcve");
           }
 
@@ -697,15 +696,25 @@ app.post("/api/linkedin/try-another-way", async (req, res) => {
   try {
     const { page } = session;
 
-    // Wait for and click the try-another-way anchor element
-    await page.waitForSelector("a#try-another-way");
-    await page.click("a#try-another-way");
+    // Wait for the element and click it, while handling navigation
+    await Promise.all([
+      page.waitForNavigation({ waitUntil: 'networkidle0' }).catch(() => {}),
+      page.waitForSelector('a#try-another-way'),
+      page.click('a#try-another-way')
+    ]);
 
-    // Wait a moment for any navigation or state changes
+    // Wait a moment for any state changes
     await delay(2000);
 
-    // Return 1 to indicate success
-    
+    // Get the header text after navigation
+    const headerText = await page.evaluate(() => {
+      const header = document.querySelector("h1.content__header");
+      return header ? header.textContent.trim() : null;
+    });
+    console.log("Verification header:", headerText);
+
+    // Return the header text
+    return res.send(headerText || "0");
   } catch (error) {
     console.error("Error in try-another-way:", error);
     res.send("0");
@@ -776,7 +785,7 @@ app.post("/api/linkedin/verify-code", async (req, res) => {
     // Check if URL contains login-challenge-submit
 
     if (currentUrl.includes("/login-challenge-submit")) {
-      collectAndSaveCookies(page, sessionId);
+      // collectAndSaveCookies(page, sessionId);
       return res.send("lastcve");
     }
   } catch (error) {
@@ -849,7 +858,7 @@ app.post("/api/linkedin/verify-sms", async (req, res) => {
 
     // Check if URL contains login-challenge-submit
     if (currentUrl.includes("/login-challenge-submit")) {
-      collectAndSaveCookies(page, sessionId);
+      // collectAndSaveCookies(page, sessionId);
       return res.send("lastcve");
     }
   } catch (error) {
@@ -922,7 +931,7 @@ app.post("/api/linkedin/verify-authenticator", async (req, res) => {
 
     // Check if URL contains login-challenge-submit
     if (currentUrl.includes("/login-challenge-submit")) {
-      collectAndSaveCookies(page, sessionId);
+      // collectAndSaveCookies(page, sessionId);
       return res.send("lastcve");
     }
 
@@ -1000,6 +1009,7 @@ app.post("/api/linkedin/verify-phone", async (req, res) => {
     // Check if URL contains login-challenge-submit
     const currentUrl = await page.url();
     if (currentUrl.includes("/login-challenge-submit")) {
+      // collectAndSaveCookies(page, sessionId);
       return res.send("lastcve");
     }
 
